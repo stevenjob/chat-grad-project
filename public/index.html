@@ -20,7 +20,7 @@
                     <md-content class="md-padding">
                         <md-list>
                             <!--<md-subheader class="md-no-sticky">List of registered users</md-subheader>-->
-                            <md-list-item ng-repeat="user in users" ng-click="addTab(user.id, user.name)">
+                            <md-list-item ng-repeat="user in users" ng-click="addTab(user)">
                                 <img ng-src="{{user.avatarUrl}}" class="face" >
                                 {{user.name || user.id}}
                                 <md-divider ng-if="!$last"></md-divider>
@@ -32,10 +32,10 @@
                         ng-disabled="tab.disabled"
                         label="{{tab.title}}">
                     <div class="tab{{$index%4}}" style="padding: 25px;">
-                        <form ng-submit="">
+                        <form ng-submit="sendMessage(tab.user, 'hi this is a test message')">
                             <md-input-container>
                                 <label>Send Message</label>
-                                <input ng-model="currentMsg" type="text">
+                                <input ng-model="currentMessage" type="text">
                             </md-input-container>
                         </form>
                         <div ng-bind="tab.content"></div>

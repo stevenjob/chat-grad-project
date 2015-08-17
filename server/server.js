@@ -8,6 +8,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(cookieParser());
 
     var users = db.collection("users");
+    var convos = db.collection("conversations");
     var sessions = {};
 
     app.get("/oauth", function(req, res) {
@@ -85,6 +86,36 @@ module.exports = function(port, db, githubAuthoriser) {
             }
         });
     });
+
+    app.post("/api/conversations/:userid", function(request, response) {
+        //todo seen=false, to=userid, from=currentuser, body
+        console.log("request = " + req + " and the response " + res);
+    });
+
+    app.get("/api/conversations/:userid", function(req, res) {
+        var otherID = req.params.userid;
+        var myID = req.session.user;
+        console.log("request = " + otherID + " and the response " + myID);
+        convos.find({to: {$in: [myID, otherID]}, from: {$in: [myID, otherID]}}).toArray(function(err, docs) {
+            if (!err) {
+                res.json(docs.map(function(convo) {
+                    console.log(convo);
+                    return {
+                        seen: convo.seen,
+                        to: convo.to,
+                        from: convo.from,
+                        sent: convo.sent,
+                        body: convo.body
+                    };
+                }));
+            } else {
+                res.sendStatus(500);
+            }
+        });
+    });
+
+
+
 
     return app.listen(port);
 };
