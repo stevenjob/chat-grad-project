@@ -1,5 +1,5 @@
 (function() {
-    var app = angular.module("ChatApp", []);
+    var app = angular.module("ChatApp", [ "ngMaterial" ] );
 
     app.controller("ChatController", function($scope, $http) {
         $scope.loggedIn = false;
