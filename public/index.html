@@ -24,7 +24,8 @@
                             <!--<md-subheader class="md-no-sticky">List of registered users</md-subheader>-->
                             <md-list-item ng-repeat="user in users" ng-click="addTab(user)">
                                 <img ng-src="{{user.avatarUrl}}" class="face" >
-                                {{user.name || user.id}}
+                                <h5>{{user.name || user.id}}</h5>
+                                <p ng-show=user.isTalking>YOU ARE TALKING :)</p>
                                 <md-divider ng-if="!$last"></md-divider>
                             </md-list-item>
                         </md-list>
@@ -51,7 +52,7 @@
                                 <b>{{message.from.name || message.from.id}}:</b> {{message.body}}
                             </md-list-item>
                         </md-list>
-                        <div ng-show="tab.messages.length===0" > ahhhh ha  over do it have a fit, come on over shoot the
+                        <div ng-show="tab.messages.length===0" > No Messages
                         </div>
                     </div>
                     </md-tab-body>

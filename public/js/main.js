@@ -33,24 +33,16 @@
         //});
 
         $scope.sendMessage = function(tab) {
+            //console.log("attemprtingsent");
             var message = {
                 sent: new Date().valueOf(),
                 body: tab.currentMessage
             };
             $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
+                console.log("message sent" + response.data);
                 message.from = $scope.user;
                 tab.currentMessage = "";
                 tab.messages.push(message);
-            }, function (response) {
-                $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
-            });
-        };
-
-        $scope.getMessages = function(user, newMessage) {
-            $http.get("/api/conversations", {
-                "sent": Date.now(),
-                "body": newMessage
-            }).then(function (response) {
             }, function (response) {
                 $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
             });
@@ -78,23 +70,23 @@
                 }
             });
 
-        var matchingTabs = $scope.convoTabs.filter(function (otherTab) {
-            return otherTab.recipient === recipient;
-        });
-        var tabLookingFor;
+            var matchingTabs = $scope.convoTabs.filter(function (otherTab) {
+                return otherTab.recipient === recipient;
+            });
+            var tabLookingFor;
 
-        if (matchingTabs.length === 0) {
-            var chatObject = {
-                messages: [],
-                recipient: recipient,
-                disabled: false};
-            $scope.convoTabs.push(chatObject);
-            tabLookingFor = chatObject;
-        } else {
-            tabLookingFor = matchingChats[0];
-        }
+            if (matchingTabs.length === 0) {
+                var chatObject = {
+                    messages: [],
+                    recipient: recipient,
+                    disabled: false};
+                $scope.convoTabs.push(chatObject);
+                tabLookingFor = chatObject;
+            } else {
+                tabLookingFor = matchingTabs[0];
+            }
 
-        $scope.$changeTab(tabLookingFor);
+            $scope.$changeTab(tabLookingFor);
         };
 
         $scope.$changeTab = function (tabLookingFor) {
@@ -118,7 +110,7 @@
         };
 
         $scope.$watch("selectedTab", function(current, old) {
-            if (current !== 0 ) {
+            if (current !== 0) {
                 var currChat = $scope.convoTabs[current - 1];
 
                 if (currChat.messages.length === 0) {
@@ -131,15 +123,21 @@
             }
         });
 
-
         $scope.$getMessagesForTab = function() {
-            if ($scope.selectedTab !== 0){
+            if ($scope.selectedTab !== 0) {
                 var currChat = $scope.convoTabs[$scope.selectedTab - 1];
                 $scope.getSpecificMessages(currChat.recipient.id, function(messages) {
                     if (messages) {
                         messages.forEach(function(message) {
                             message.from = $scope.$getUserById(message.from);
-                            currChat.messages.push(message);
+
+                            var sameTimeMessages = currChat.messages.filter(function (otherMessage) {
+                                return otherMessage.sent === message.sent;
+                            });
+
+                            if (sameTimeMessages.length === 0) {
+                                currChat.messages.push(message);
+                            }
                         });
                     }
                     else {
@@ -147,11 +145,28 @@
                     }
                 });
             }
-        }
+        };
 
+        $scope.$reloadFromServer = function() {
+            $scope.$getMessagesForTab();
+            //$scope.$getMessages();
+        };
 
+        $scope.$getMessages = function() {
+            $http.get("/api/conversations").then(function (response) {
+                response.data.forEach(function (conversation) {
+                    var user = $scope.$getUserById(conversation.user);
+                    user.isTalking = true;
+                    var lastMsgTime = $scope.$getUserById(conversation.lastMessage);
+                    console.log("hi " + user.json);
+                });
 
+            }, function (response) {
+                $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
+            });
+        };
 
+        setInterval($scope.$reloadFromServer, 1000);
 
     });
 })();

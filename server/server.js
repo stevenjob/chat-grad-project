@@ -10,7 +10,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations-jobs");
+    var convos = db.collection("conversations-job");
     var sessions = {};
 
     app.get("/oauth", function(req, res) {
@@ -110,7 +110,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.get("/api/conversations/:userid", function(req, res) {
         var otherID = req.params.userid;
         var myID = req.session.user;
-        convos.find({between: { $all: [myId, otherID]}}).toArray(function(err, docs) {
+        convos.find({between: {$all: [myID, otherID]}}).toArray(function(err, docs) {
             if (!err) {
                 res.json(docs.map(function(convo) {
                     console.log(convo);
@@ -127,5 +127,52 @@ module.exports = function(port, db, githubAuthoriser) {
             }
         });
     });
+
+    app.get("/api/conversations", function(req, res) {
+        convos.find({
+            between: req.session.user
+        }).toArray(function (err, docs) {
+            if (!err) {
+                var usersDiscovered = [];
+                var chats = [];
+
+                docs.forEach(function (message) {
+                    var chat;
+                    var user = message.between.filter(function (user) {
+                        return user !== req.session.user;
+                    })[0];
+
+                    if (usersDiscovered.indexOf(user) === -1) {
+                        chat = {
+                            user: user,
+                            lastMessage: message.sent
+                        };
+
+                        if (message.between[0] === req.session.user) {
+                            chat.anyUnseen = false;
+                        }
+                        else {
+                            chat.anyUnseen = message.seen ? false : true;
+                        }
+
+                        usersDiscovered.push(user);
+                        chats.push(chat);
+                    }
+                    else {
+                        chat = chats[usersDiscovered.indexOf(user)];
+                        if (chat.lastMessage < message.sent) {
+                            chat.lastMessage = message.sent;
+                            if (message.between[0] === req.session.user) {
+                                chat.anyUnseen = false;
+                            } else {
+                                chat.anyUnseen = message.seen ? false : true;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    });
+
     return app.listen(port);
 };
