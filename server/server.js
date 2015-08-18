@@ -1,14 +1,16 @@
 var express = require("express");
 var cookieParser = require("cookie-parser");
+var bodyParser = require("body-parser");
 
 module.exports = function(port, db, githubAuthoriser) {
     var app = express();
 
     app.use(express.static("public"));
     app.use(cookieParser());
+    app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations");
+    var convos = db.collection("conversations-jobs");
     var sessions = {};
 
     app.get("/oauth", function(req, res) {
@@ -87,23 +89,35 @@ module.exports = function(port, db, githubAuthoriser) {
         });
     });
 
-    app.post("/api/conversations/:userid", function(request, response) {
-        //todo seen=false, to=userid, from=currentuser, body
-        console.log("request = " + req + " and the response " + res);
+    app.post("/api/conversations/:userid", function(req, res) {
+        var recevID = req.params.userid;
+        var senderID = req.session.user;
+        var message = {
+            seen: false,
+            between: [senderID, recevID],
+            sent: req.body.sent,
+            body: req.body.body
+        };
+        if (senderID && recevID && message) {
+
+            convos.insertOne(message);
+            res.sendStatus(200);
+        } else {
+            res.sendStatus(404);
+        }
     });
 
     app.get("/api/conversations/:userid", function(req, res) {
         var otherID = req.params.userid;
         var myID = req.session.user;
-        console.log("request = " + otherID + " and the response " + myID);
-        convos.find({to: {$in: [myID, otherID]}, from: {$in: [myID, otherID]}}).toArray(function(err, docs) {
+        convos.find({between: { $all: [myId, otherID]}}).toArray(function(err, docs) {
             if (!err) {
                 res.json(docs.map(function(convo) {
                     console.log(convo);
                     return {
                         seen: convo.seen,
-                        to: convo.to,
-                        from: convo.from,
+                        to: convo.between[1],
+                        from: convo.between[0],
                         sent: convo.sent,
                         body: convo.body
                     };
@@ -113,9 +127,5 @@ module.exports = function(port, db, githubAuthoriser) {
             }
         });
     });
-
-
-
-
     return app.listen(port);
 };

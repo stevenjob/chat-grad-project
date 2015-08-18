@@ -7,15 +7,17 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-aria.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular-animate.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.1/angular-material.min.js"></script>
+
         <script src="js/main.js"></script>
         <link rel="stylesheet" href="index.css">
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.0/angular-material.min.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     </head>
     <body ng-controller="ChatController">
         <md-button md-no-ink class="md-primary" ng-show="!loggedIn" ng-href={{loginUri}} >Log In</md-button>
         <p>Logged in as {{user.name}}.</p>
         <md-content ng-show="loggedIn" class="md-padding">
-            <md-tabs md-dynamic-height md-border-bottom>
+            <md-tabs  md-selected="selectedTab" md-dynamic-height md-border-bottom>
                 <md-tab label="users">
                     <md-content class="md-padding">
                         <md-list>
@@ -28,18 +30,31 @@
                         </md-list>
                     </md-content>
                 </md-tab>
-                <md-tab ng-repeat="tab in tabs"
+                <md-tab ng-repeat="tab in convoTabs"
                         ng-disabled="tab.disabled"
-                        label="{{tab.title}}">
+                        >
+                    <md-tab-label>
+                        {{tab.recipient.name || tab.recipient.id}}
+                        <i class="material-icons" ng-click="removeTab(tab)">clear</i>
+                    </md-tab-label>
+                    <md-tab-body>
                     <div class="tab{{$index%4}}" style="padding: 25px;">
-                        <form ng-submit="sendMessage(tab.user, 'hi this is a test message')">
+                        <form ng-submit="sendMessage(tab)">
                             <md-input-container>
                                 <label>Send Message</label>
-                                <input ng-model="currentMessage" type="text">
+                                <input ng-model="tab.currentMessage" type="text">
                             </md-input-container>
                         </form>
-                        <div ng-bind="tab.content"></div>
+                        <md-list>
+                            <md-list-item ng-repeat="message in tab.messages">
+                                <!--<img src="{{message.from.avatarUrl}}" class="md-avatar" alt="{{message.from.name || message.from.id}}" />-->
+                                <b>{{message.from.name || message.from.id}}:</b> {{message.body}}
+                            </md-list-item>
+                        </md-list>
+                        <div ng-show="tab.messages.length===0" > ahhhh ha  over do it have a fit, come on over shoot the
+                        </div>
                     </div>
+                    </md-tab-body>
                 </md-tab>
             </md-tabs>
         </md-content>

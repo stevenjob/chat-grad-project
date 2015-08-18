@@ -6,10 +6,10 @@
     app.controller("ChatController", function($scope, $http) {
 
         $scope.loggedIn = false;
-        var tabs = [];
-        var selected = null;
+        var convoTabs = [];
+        $scope.selectedTab = 0;
         var previous = null;
-        $scope.tabs = tabs;
+        $scope.convoTabs = convoTabs;
 
         $http.get("/api/user").then(function(userResult) {
             $scope.loggedIn = true;
@@ -32,18 +32,22 @@
         //
         //});
 
-        $scope.sendMessage = function(user, newMessage) {
-            $http.post("/api/conversations/" + user.id, {
-                "sent": Date.now(),
-                "body": newMessage
-            }).then(function (response) {
+        $scope.sendMessage = function(tab) {
+            var message = {
+                sent: new Date().valueOf(),
+                body: tab.currentMessage
+            };
+            $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
+                message.from = $scope.user;
+                tab.currentMessage = "";
+                tab.messages.push(message);
             }, function (response) {
                 $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
             });
         };
 
         $scope.getMessages = function(user, newMessage) {
-            $http.get("/api/conversations/" + user.id, {
+            $http.get("/api/conversations", {
                 "sent": Date.now(),
                 "body": newMessage
             }).then(function (response) {
@@ -52,26 +56,102 @@
             });
         };
 
-        $scope.addTab = function (user) {
-            //todo get view stuff
-            //view = view || title + " Content View";
-            var view = getSpecificMessages(user.id);
-            tabs.push({title: (user.name || user.id), content: view, user: user,  disabled: false});
-        };
-
         $scope.removeTab = function (tab) {
-            var index = tabs.indexOf(tab);
-            tabs.splice(index, 1);
+            var index = convoTabs.indexOf(tab);
+            convoTabs.splice(index, 1);
         };
 
-        function getSpecificMessages(userID) {
+        $scope.$getUserById = function (uId) {
+            return $scope.users.filter(function (user) {
+                return user.id === uId;
+            })[0];
+        };
+
+        $scope.addTab = function (recipient) {
+            //todo get view stuff change convoTabs params
+            //view = view || title + " Content View";
+            $scope.getSpecificMessages(recipient.id, function(messages) {
+                if (messages) {
+                    messages.forEach(function(message) {
+                        message.from = $scope.$getUserById(message.from);
+                    });
+                }
+            });
+
+        var matchingTabs = $scope.convoTabs.filter(function (otherTab) {
+            return otherTab.recipient === recipient;
+        });
+        var tabLookingFor;
+
+        if (matchingTabs.length === 0) {
+            var chatObject = {
+                messages: [],
+                recipient: recipient,
+                disabled: false};
+            $scope.convoTabs.push(chatObject);
+            tabLookingFor = chatObject;
+        } else {
+            tabLookingFor = matchingChats[0];
+        }
+
+        $scope.$changeTab(tabLookingFor);
+        };
+
+        $scope.$changeTab = function (tabLookingFor) {
+            var openTabs = $scope.convoTabs.length;
+            for (var i = 0; i < openTabs; i++) {
+                var tab = $scope.convoTabs[i];
+                if (angular.equals(tab.recipient, tabLookingFor.recipient)) {
+                    $scope.selectedTab = i + 1; // +1 because of the first chat tab
+                    break;
+                }
+            }
+        };
+
+        $scope.getSpecificMessages = function(userID, callback) {
             $http.get("/api/conversations/" + userID).then(function (response) {
                 //todo positive
-                console.log(response + " sdfgsfg" + response.body);
+                callback(response.data);
             }, function (response) {
                 $scope.errorText = "Failed to get messages. Status: " + response.status + " - " + response.responseText;
-
             });
+        };
+
+        $scope.$watch("selectedTab", function(current, old) {
+            if (current !== 0 ) {
+                var currChat = $scope.convoTabs[current - 1];
+
+                if (currChat.messages.length === 0) {
+                    $scope.$getMessagesForTab();
+
+                    //var matchingTabs = $scope.convoTabs.filter(function (otherTab) {
+                    //    return otherTab.recipient === recipient;
+                    //});
+                }
+            }
+        });
+
+
+        $scope.$getMessagesForTab = function() {
+            if ($scope.selectedTab !== 0){
+                var currChat = $scope.convoTabs[$scope.selectedTab - 1];
+                $scope.getSpecificMessages(currChat.recipient.id, function(messages) {
+                    if (messages) {
+                        messages.forEach(function(message) {
+                            message.from = $scope.$getUserById(message.from);
+                            currChat.messages.push(message);
+                        });
+                    }
+                    else {
+
+                    }
+                });
+            }
         }
+
+
+
+
+
     });
 })();
