@@ -3,3 +3,7 @@
     margin: 16px;
     border-radius: 48px;
     border: 1px solid #ddd; }
+
+header {
+    background-color: #689F38;
+}

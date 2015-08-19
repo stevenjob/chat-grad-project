@@ -15,8 +15,10 @@
     </head>
     <body ng-controller="ChatController">
         <md-button md-no-ink class="md-primary" ng-show="!loggedIn" ng-href={{loginUri}} >Log In</md-button>
-        <p>Logged in as {{user.name}}.</p>
         <md-content ng-show="loggedIn" class="md-padding">
+            <header>
+            <h3>Logged in as {{user.name}}.</h3>
+            </header>
             <md-tabs  md-selected="selectedTab" md-dynamic-height md-border-bottom>
                 <md-tab label="users">
                     <md-input-container>
@@ -26,10 +28,12 @@
                     <md-content class="md-padding">
                         <md-list>
                             <!--<md-subheader class="md-no-sticky">List of registered users</md-subheader>-->
-                            <md-list-item ng-repeat="user in users | filter: searchUsers | orderBy:'lastMsgTime'" ng-click="addTab(user)">
+                            <md-list-item ng-repeat="user in users | excludeCurrent | filter: searchUsers | orderBy:'lastMsgTime' " ng-click="addTab(user)">
                                 <img ng-src="{{user.avatarUrl}}" class="face" >
                                 <h5>{{user.name || user.id}}</h5>
-                                <p ng-show=user.isTalking>YOU ARE TALKING :)</p> {{user}}
+                                <p ng-show=user.isTalking><i class="material-icons">chat_bubble_outline</i></p>
+                                <p ng-show=user.anyUnseen><i class="material-icons">announcement</i></p>
+                                {{user.lastMsgTime | date: 'h:mm a d MMM'}}
                                 <md-divider ng-if="!$last"></md-divider>
                             </md-list-item>
                         </md-list>
@@ -53,7 +57,7 @@
                         <md-list>
                             <md-list-item ng-repeat="message in tab.messages">
                                 <!--<img src="{{message.from.avatarUrl}}" class="md-avatar" alt="{{message.from.name || message.from.id}}" />-->
-                                <b>{{message.from.name || message.from.id}}:</b> {{message.body}}
+                                <b>{{message.from.name || message.from.id}}:</b> <br/> {{message.body}} seen: {{message.seen}} <b>{{message.sent | date: 'h:mm a d MMM'}}</b>
                             </md-list-item>
                         </md-list>
                         <div ng-show="tab.messages.length===0" > No Messages

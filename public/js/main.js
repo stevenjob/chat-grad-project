@@ -3,13 +3,28 @@
         $mdThemingProvider.theme("default").primaryPalette("blue").accentPalette("orange");
     });
 
-    app.controller("ChatController", function($scope, $http) {
+    app.filter('excludeCurrent', function () {
+        return function (items) {
+            var filtered = [];
+            if(items === undefined)
+                return null;
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.id !== "stevenjob") {
+                    filtered.push(item);
+                }
+            }
+            return filtered;
+        };
+    });
+
+    app.controller("ChatController", function($scope, $http, $mdToast) {
 
         $scope.loggedIn = false;
         var convoTabs = [];
         $scope.selectedTab = 0;
-        var previous = null;
         $scope.convoTabs = convoTabs;
+        $scope.user = "";
 
         $http.get("/api/user").then(function(userResult) {
             $scope.loggedIn = true;
@@ -24,26 +39,18 @@
             });
         });
 
-        ////get all conversations for user
-        //$http.get("/api/conversations").then(function(convoResult) {
-        //    console.log(convoResult, )
-        //    $scope.loggedIn = true;
-        //
-        //    $scope.user = convoResult.data;
-        //
-        //});
-
         $scope.sendMessage = function(tab) {
-            //console.log("attemprtingsent");
             var message = {
                 sent: new Date().valueOf(),
                 body: tab.currentMessage
             };
             $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
                 //console.log("message sent" + response.data);
+                message.to = tab.recipient.id;
                 message.from = $scope.user;
+                message.seen = false;
                 tab.currentMessage = "";
-                tab.messages.push(message);
+                //tab.messages.push(message);
             }, function (response) {
                 $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
             });
@@ -131,14 +138,25 @@
                     if (messages) {
                         messages.forEach(function(message) {
                             message.from = $scope.$getUserById(message.from);
+                            //if (message.from.id === currChat.recipient.id){
+                            //    message.seen = true;
+                            //}
+
 
                             var sameTimeMessages = currChat.messages.filter(function (otherMessage) {
                                 return otherMessage.sent === message.sent;
                             });
-
                             if (sameTimeMessages.length === 0) {
+                                if(message.from.id !== $scope.user._id)
+                                    $scope.$toastShow(message);
                                 currChat.messages.push(message);
-                                message.from.isTalking = false;
+                            }
+                            else {
+                                if (message.from.id !== $scope.user._id && !message.seen) {
+                                    currChat.messages.filter(function (otherMessage) {
+                                        otherMessage.seen = true;
+                                    });
+                                }
                             }
                         });
                     }
@@ -154,14 +172,36 @@
             $scope.$getMessages();
         };
 
+        $scope.$toastShow = function(message) {
+            var toast = $mdToast.simple()
+                .content((message.from.name || message.from.id) + ": " + message.body)
+                .position("bottom right");
+
+            $mdToast.show(toast);
+        };
+
         $scope.$getMessages = function() {
             $http.get("/api/conversations").then(function (response) {
                 response.data.forEach(function (conversation) {
                     var user = $scope.$getUserById(conversation.user);
-                    user.isTalking = true;
-                    user.lastMsgTime = conversation.lastMessage;
+
+                    //if user lastmsg time is different then user has a new mesage
+                    //
+
+                    if(!user.isTalking)
+                        user.isTalking = true;
+                    else{
+                        if(user.lastMsgTime < conversation.lastMessage || !user.lastMsgTime){
+                            user.lastMsgTime = conversation.lastMessage;
+                            user.anyUnseen = true;
+                        }
+                    }
+
+
                     //var lastMsgTime = $scope.$getUserById(conversation.lastMessage);
                     //console.log("hi " + user.json);
+
+
                 });
             }, function (response) {
                 $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;

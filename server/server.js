@@ -10,7 +10,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations-wpferg");
+    var convos = db.collection("conversations-3");
     var sessions = {};
 
     app.get("/oauth", function(req, res) {
@@ -93,9 +93,9 @@ module.exports = function(port, db, githubAuthoriser) {
         var recevID = req.params.userid;
         var senderID = req.session.user;
         var message = {
-            seen: false,
             between: [senderID, recevID],
             sent: req.body.sent,
+            seen: [false],
             body: req.body.body
         };
         if (senderID && recevID && message) {
@@ -110,26 +110,22 @@ module.exports = function(port, db, githubAuthoriser) {
     app.get("/api/conversations/:userid", function(req, res) {
         var otherID = req.params.userid;
         var myID = req.session.user;
-        convos.update({between: {$all: [myID, otherID]}}, {
+        convos.update({between: [otherID, myID]}, {
             $set: {
-                seen: true
+                seen: [true]
             }
         }, {multi: true});
-        
         convos.find({between: {$all: [myID, otherID]}}).toArray(function(err, docs) {
             if (!err) {
-
                 res.json(docs.map(function(convo) {
                     return {
-                        seen: convo.seen,
                         to: convo.between[1],
                         from: convo.between[0],
                         sent: convo.sent,
+                        seen: convo.seen[0],
                         body: convo.body
                     };
                 }));
-
-
 
             } else {
                 res.sendStatus(500);
@@ -161,7 +157,7 @@ module.exports = function(port, db, githubAuthoriser) {
                     }
                     else {
                         chat.anyUnseen = message.seen ? false : true;
-                        console.log("qwreetty" + chat.anyUnseen);
+
                     }
 
                     chats.push(chat);
