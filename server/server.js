@@ -10,7 +10,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations-job");
+    var convos = db.collection("conversations-wpferg");
     var sessions = {};
 
     app.get("/oauth", function(req, res) {
@@ -110,10 +110,16 @@ module.exports = function(port, db, githubAuthoriser) {
     app.get("/api/conversations/:userid", function(req, res) {
         var otherID = req.params.userid;
         var myID = req.session.user;
+        convos.update({between: {$all: [myID, otherID]}}, {
+            $set: {
+                seen: true
+            }
+        }, {multi: true});
+        
         convos.find({between: {$all: [myID, otherID]}}).toArray(function(err, docs) {
             if (!err) {
+
                 res.json(docs.map(function(convo) {
-                    console.log(convo);
                     return {
                         seen: convo.seen,
                         to: convo.between[1],
@@ -122,10 +128,14 @@ module.exports = function(port, db, githubAuthoriser) {
                         body: convo.body
                     };
                 }));
+
+
+
             } else {
                 res.sendStatus(500);
             }
         });
+
     });
 
     app.get("/api/conversations", function(req, res) {
@@ -133,7 +143,6 @@ module.exports = function(port, db, githubAuthoriser) {
             between: req.session.user
         }).toArray(function (err, docs) {
             if (!err) {
-                var usersDiscovered = [];
                 var chats = [];
 
                 docs.forEach(function (message) {
@@ -142,34 +151,23 @@ module.exports = function(port, db, githubAuthoriser) {
                         return user !== req.session.user;
                     })[0];
 
-                    if (usersDiscovered.indexOf(user) === -1) {
-                        chat = {
-                            user: user,
-                            lastMessage: message.sent
-                        };
+                    chat = {
+                        user: user,
+                        lastMessage: message.sent
+                    };
 
-                        if (message.between[0] === req.session.user) {
-                            chat.anyUnseen = false;
-                        }
-                        else {
-                            chat.anyUnseen = message.seen ? false : true;
-                        }
-
-                        usersDiscovered.push(user);
-                        chats.push(chat);
+                    if (message.between[0] === req.session.user) {
+                        chat.anyUnseen = false;
                     }
                     else {
-                        chat = chats[usersDiscovered.indexOf(user)];
-                        if (chat.lastMessage < message.sent) {
-                            chat.lastMessage = message.sent;
-                            if (message.between[0] === req.session.user) {
-                                chat.anyUnseen = false;
-                            } else {
-                                chat.anyUnseen = message.seen ? false : true;
-                            }
-                        }
+                        chat.anyUnseen = message.seen ? false : true;
+                        console.log("qwreetty" + chat.anyUnseen);
                     }
+
+                    chats.push(chat);
                 });
+
+                res.json(chats);
             }
         });
     });
