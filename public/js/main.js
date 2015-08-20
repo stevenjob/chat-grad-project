@@ -20,6 +20,12 @@
 
     app.controller("ChatController", function($scope, $http, $mdToast) {
 
+        var socket = io.connect('http://localhost');
+        socket.on('thiss', function (data) {
+            console.log(data.will + "aaa");
+            socket.emit('my other event', {my: 'hhidata'});
+        });
+
         $scope.loggedIn = false;
         var convoTabs = [];
         $scope.selectedTab = 0;
