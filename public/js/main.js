@@ -20,25 +20,39 @@
 
     app.controller("ChatController", function($scope, $http, $mdToast) {
 
-        var socket = io.connect('http://localhost');
-        socket.on('thiss', function (data) {
-            console.log(data.will + "aaa");
-            socket.emit('my other event', {my: 'hhidata'});
-        });
-
         $scope.loggedIn = false;
         var convoTabs = [];
         $scope.selectedTab = 0;
         $scope.convoTabs = convoTabs;
         $scope.user = "";
+        $scope.socket = null;
+
+        $scope.getSocks = function() {
+            $scope.socket = io("http://" + window.location.host);
+            $scope.socket.on("connect", function () {
+                $scope.socket.emit("userId", $scope.user.id);
+            });
+            $scope.socket.on("message", function (message) {
+                console.log("fyxdxzc");
+                //$scope.$addMessageToChat(message);
+            });
+        };
+
+        $scope.$sendSockMess = function(to, message) {
+            if ($scope.socket) {
+                message.to = to;
+                $scope.socket.emit("message", message);
+            }
+        }
 
         $http.get("/api/user").then(function(userResult) {
             $scope.loggedIn = true;
             $scope.user = userResult.data;
             $http.get("/api/users").then(function(result) {
                 $scope.users = result.data;
-                //$scope.users.sort();
             });
+            $scope.$reloadFromServer();
+            $scope.getSocks();
         }, function() {
             $http.get("/api/oauth/uri").then(function(result) {
                 $scope.loginUri = result.data.uri;
@@ -50,16 +64,20 @@
                 sent: new Date().valueOf(),
                 body: tab.currentMessage
             };
-            $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
-                //console.log("message sent" + response.data);
-                message.to = tab.recipient.id;
-                message.from = $scope.user;
-                message.seen = false;
-                tab.currentMessage = "";
-                //tab.messages.push(message);
-            }, function (response) {
-                $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
-            });
+            if($scope.socket) {
+                $scope.$sendSockMess(tab.recipient.id, message);
+            }
+            else {
+                $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
+                    message.to = tab.recipient.id;
+                    message.from = $scope.user;
+                    message.seen = false;
+                    tab.currentMessage = "";
+                    //tab.messages.push(message);
+                }, function (response) {
+                    $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
+                });
+            }
         };
 
         $scope.removeTab = function (tab) {

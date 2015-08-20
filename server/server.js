@@ -8,25 +8,17 @@ module.exports = function(port, db, githubAuthoriser) {
     var server = require('http').Server(app);
     var io = require('socket.io')(server);
 
-    server.listen(80);
-
     app.use(express.static("public"));
     app.use(cookieParser());
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations-3");
+    var convos = db.collection("conversations");
     var sessions = {};
+    var activeSocks = {};
 
     app.get('/', function (req, res) {
         res.sendfile(__dirname + '/index.html');
-    });
-
-    io.on('connection', function (socket) {
-        io.emit('thiss', { will: 'bee received by everyone'});
-        socket.on('my other event', function (data) {
-            console.log(data);
-        });
     });
 
     app.get("/oauth", function(req, res) {
@@ -105,6 +97,41 @@ module.exports = function(port, db, githubAuthoriser) {
         });
     });
 
+    io.on("connection", function (socket) {
+        var socketId;
+        socket.on("userId", function (message) {
+            socketId = message;
+            console.log(message);
+            activeSocks[socketId] = socket;
+        });
+
+        socket.on("disconnect", function () {
+            delete activeSocks[socketId];
+        });
+
+        //when sendsockmess called
+        socket.on("message", function (message) {
+            var to = message.to;
+            delete message.to;
+            saveMessage(socketId, to, message);
+        });
+    });
+
+    function saveMessage(senderID, recevID, message, res) {
+        if (senderID && recevID && message) {
+            console.log(message.body);
+            message.between = [senderID, recevID];
+            convos.insertOne(message);
+            if(res)
+                res.sendStatus(200);
+        } else {
+            if(res)
+                res.sendStatus(404);
+        }
+    }
+
+
+
     app.post("/api/conversations/:userid", function(req, res) {
         var recevID = req.params.userid;
         var senderID = req.session.user;
@@ -114,13 +141,7 @@ module.exports = function(port, db, githubAuthoriser) {
             seen: [false],
             body: req.body.body
         };
-        if (senderID && recevID && message) {
-
-            convos.insertOne(message);
-            res.sendStatus(200);
-        } else {
-            res.sendStatus(404);
-        }
+        saveMessage(senderID, recevID, message, res);
     });
 
     app.get("/api/conversations/:userid", function(req, res) {
@@ -184,5 +205,5 @@ module.exports = function(port, db, githubAuthoriser) {
         });
     });
 
-    return app.listen(port);
+    return server.listen(port);
 };
