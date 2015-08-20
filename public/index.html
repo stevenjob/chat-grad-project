@@ -54,6 +54,7 @@
                                 <input ng-model="tab.currentMessage" type="text">
                             </md-input-container>
                         </form>
+                        <md-button md-no-ink class="md-primary" ng-click="deleteConvo(tab)" >Remove Conversation</md-button>
                         <md-list>
                             <md-list-item ng-repeat="message in tab.messages">
                                 <!--<img src="{{message.from.avatarUrl}}" class="md-avatar" alt="{{message.from.name || message.from.id}}" />-->

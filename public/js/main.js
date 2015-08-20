@@ -3,11 +3,12 @@
         $mdThemingProvider.theme("default").primaryPalette("blue").accentPalette("orange");
     });
 
-    app.filter('excludeCurrent', function () {
+    app.filter("excludeCurrent", function () {
         return function (items) {
             var filtered = [];
-            if(items === undefined)
+            if (items === undefined) {
                 return null;
+            }
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];
                 if (item.id !== "") {
@@ -33,7 +34,7 @@
                 $scope.socket.emit("userId", $scope.user._id);
             });
             $scope.socket.on("message", function (message) {
-                console.log("f" + message);
+                //console.log("f" + message);
                 $scope.$addMessageToTab(message);
                 //$scope.$addMessageToChat(message);
             });
@@ -44,7 +45,15 @@
                 message.to = to;
                 $scope.socket.emit("message", message);
             }
-        }
+        };
+
+        $scope.deleteConvo = function(tab) {
+            if ($scope.socket) {
+                $scope.socket.emit("delete-convo", tab.recipient.id);
+                //convoTabs remove tab
+                $scope.removeTab(tab);
+            }
+        };
 
         $http.get("/api/user").then(function(userResult) {
             $scope.loggedIn = true;
@@ -65,7 +74,7 @@
                 sent: new Date().valueOf(),
                 body: tab.currentMessage
             };
-            if($scope.socket) {
+            if ($scope.socket) {
                 $scope.$sendSockMess(tab.recipient.id, message);
                 tab.currentMessage = "";
             }
@@ -77,7 +86,8 @@
                     tab.currentMessage = "";
                     //tab.messages.push(message);
                 }, function (response) {
-                    $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
+                    $scope.errorText = "Failed to send message. Status: " + response.status + " - " +
+                        response.responseText;
                 });
             }
         };
@@ -167,8 +177,9 @@
                 });
 
                 if (sameTimeMessages.length === 0) {
-                    if(message.from.id !== $scope.user._id)
+                    if (message.from.id !== $scope.user._id) {
                         $scope.$toastShow(message);
+                    }
                     message.seen = message.seen[0];
                     currChat.messages.push(message);
                 }
@@ -180,7 +191,7 @@
                     }
                 }
             }
-        }
+        };
 
         $scope.$getMessagesForTab = function() {
             if ($scope.selectedTab !== 0) {
@@ -192,14 +203,13 @@
                             //if (message.from.id === currChat.recipient.id){
                             //    message.seen = true;
                             //}
-
-
                             var sameTimeMessages = currChat.messages.filter(function (otherMessage) {
                                 return otherMessage.sent === message.sent;
                             });
                             if (sameTimeMessages.length === 0) {
-                                if(message.from.id !== $scope.user._id)
+                                if (message.from.id !== $scope.user._id) {
                                     $scope.$toastShow(message);
+                                }
                                 currChat.messages.push(message);
                             }
                             else {
@@ -219,7 +229,7 @@
         };
 
         $scope.$reloadFromServer = function() {
-            $scope.$getMessagesForTab();
+            //$scope.$getMessagesForTab();
             $scope.$getMessages();
         };
 
@@ -238,28 +248,22 @@
 
                     //if user lastmsg time is different then user has a new mesage
                     //
-
-                    if(!user.isTalking)
+                    if (!user.isTalking) {
                         user.isTalking = true;
-                    else{
-                        if(user.lastMsgTime < conversation.lastMessage || !user.lastMsgTime){
+                    }
+                    else {
+                        if (user.lastMsgTime < conversation.lastMessage || !user.lastMsgTime) {
                             user.lastMsgTime = conversation.lastMessage;
                             user.anyUnseen = true;
                         }
                     }
-
-
                     //var lastMsgTime = $scope.$getUserById(conversation.lastMessage);
                     //console.log("hi " + user.json);
-
-
                 });
             }, function (response) {
                 $scope.errorText = "Failed to send message. Status: " + response.status + " - " + response.responseText;
             });
         };
-
-        //setInterval($scope.$reloadFromServer, 1000);
-
+        setInterval($scope.$reloadFromServer, 1000);
     });
 })();

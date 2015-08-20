@@ -4,9 +4,9 @@ var bodyParser = require("body-parser");
 
 module.exports = function(port, db, githubAuthoriser) {
     //var app = express();
-    var app = require('express')();
-    var server = require('http').Server(app);
-    var io = require('socket.io')(server);
+    var app = require("express")();
+    var server = require("http").Server(app);
+    var io = require("socket.io")(server);
 
     app.use(express.static("public"));
     app.use(cookieParser());
@@ -17,8 +17,8 @@ module.exports = function(port, db, githubAuthoriser) {
     var sessions = {};
     var activeSocks = {};
 
-    app.get('/', function (req, res) {
-        res.sendfile(__dirname + '/index.html');
+    app.get("/", function (req, res) {
+        res.sendfile(__dirname + "/index.html");
     });
 
     app.get("/oauth", function(req, res) {
@@ -115,6 +115,18 @@ module.exports = function(port, db, githubAuthoriser) {
             console.log(to + " " + socketId);
             saveMessage(socketId, to, message);
         });
+
+        //not working atm
+        socket.on("delete-convo", function(id) {
+            convos.find({between: {$all: [socketId, id]}}).toArray(function(err, docs) {
+                if (!err) {
+                    docs.forEach(function (convo) {
+                        convos.remove(convo);
+                    });
+                }
+            });
+        });
+
     });
 
     function saveMessage(senderID, recevID, message, res) {
@@ -124,11 +136,14 @@ module.exports = function(port, db, githubAuthoriser) {
             message.seen = [false];
             convos.insertOne(message);
             emitNewMessage(message);
-            if(res)
+            if (res) {
                 res.sendStatus(200);
-        } else {
-            if(res)
+            }
+        }
+        else {
+            if (res) {
                 res.sendStatus(404);
+            }
         }
     }
 

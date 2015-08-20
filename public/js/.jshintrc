@@ -6,6 +6,7 @@
   "undef": true,
   "browser": true,
   "globals": {
+    "io": true,
     "angular": true
   }
 }
