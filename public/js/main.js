@@ -10,7 +10,7 @@
                 return null;
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                if (item.id !== "stevenjob") {
+                if (item.id !== "") {
                     filtered.push(item);
                 }
             }
@@ -30,10 +30,11 @@
         $scope.getSocks = function() {
             $scope.socket = io("http://" + window.location.host);
             $scope.socket.on("connect", function () {
-                $scope.socket.emit("userId", $scope.user.id);
+                $scope.socket.emit("userId", $scope.user._id);
             });
             $scope.socket.on("message", function (message) {
-                console.log("fyxdxzc");
+                console.log("f" + message);
+                $scope.$addMessageToTab(message);
                 //$scope.$addMessageToChat(message);
             });
         };
@@ -66,6 +67,7 @@
             };
             if($scope.socket) {
                 $scope.$sendSockMess(tab.recipient.id, message);
+                tab.currentMessage = "";
             }
             else {
                 $http.post("/api/conversations/" + tab.recipient.id, message).then(function (response) {
@@ -155,6 +157,31 @@
             }
         });
 
+        $scope.$addMessageToTab = function(message) {
+            if ($scope.selectedTab !== 0) {
+                var currChat = $scope.convoTabs[$scope.selectedTab - 1];
+                message.from = $scope.$getUserById(message.from);
+
+                var sameTimeMessages = currChat.messages.filter(function (otherMessage) {
+                    return otherMessage.sent === message.sent;
+                });
+
+                if (sameTimeMessages.length === 0) {
+                    if(message.from.id !== $scope.user._id)
+                        $scope.$toastShow(message);
+                    message.seen = message.seen[0];
+                    currChat.messages.push(message);
+                }
+                else {
+                    if (message.from.id !== $scope.user._id && !message.seen) {
+                        currChat.messages.filter(function (otherMessage) {
+                            otherMessage.seen = true;
+                        });
+                    }
+                }
+            }
+        }
+
         $scope.$getMessagesForTab = function() {
             if ($scope.selectedTab !== 0) {
                 var currChat = $scope.convoTabs[$scope.selectedTab - 1];
@@ -232,7 +259,7 @@
             });
         };
 
-        setInterval($scope.$reloadFromServer, 1000);
+        //setInterval($scope.$reloadFromServer, 1000);
 
     });
 })();

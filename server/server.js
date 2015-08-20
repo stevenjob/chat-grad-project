@@ -13,7 +13,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations");
+    var convos = db.collection("conversations-s");
     var sessions = {};
     var activeSocks = {};
 
@@ -100,8 +100,8 @@ module.exports = function(port, db, githubAuthoriser) {
     io.on("connection", function (socket) {
         var socketId;
         socket.on("userId", function (message) {
-            socketId = message;
             console.log(message);
+            socketId = message;
             activeSocks[socketId] = socket;
         });
 
@@ -109,10 +109,10 @@ module.exports = function(port, db, githubAuthoriser) {
             delete activeSocks[socketId];
         });
 
-        //when sendsockmess called
         socket.on("message", function (message) {
             var to = message.to;
             delete message.to;
+            console.log(to + " " + socketId);
             saveMessage(socketId, to, message);
         });
     });
@@ -121,7 +121,9 @@ module.exports = function(port, db, githubAuthoriser) {
         if (senderID && recevID && message) {
             console.log(message.body);
             message.between = [senderID, recevID];
+            message.seen = [false];
             convos.insertOne(message);
+            emitNewMessage(message);
             if(res)
                 res.sendStatus(200);
         } else {
@@ -129,8 +131,6 @@ module.exports = function(port, db, githubAuthoriser) {
                 res.sendStatus(404);
         }
     }
-
-
 
     app.post("/api/conversations/:userid", function(req, res) {
         var recevID = req.params.userid;
@@ -143,6 +143,21 @@ module.exports = function(port, db, githubAuthoriser) {
         };
         saveMessage(senderID, recevID, message, res);
     });
+
+    function emitNewMessage(message) {
+        var usersToAlert = message.between;
+        usersToAlert.forEach(function (user) {
+            if (activeSocks[user]) {
+                activeSocks[user].emit("message", {
+                    to:   message.between[1],
+                    from: message.between[0],
+                    sent: message.sent,
+                    body: message.body,
+                    seen: message.seen
+                });
+            }
+        });
+    }
 
     app.get("/api/conversations/:userid", function(req, res) {
         var otherID = req.params.userid;
