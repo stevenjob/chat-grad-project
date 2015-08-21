@@ -126,7 +126,8 @@
                 return $scope.user.avatarUrl;
             }
             else {
-                return message.recipient.avatarUrl;
+                var tab = $scope.$getTabByUserId(message.from.id);
+                return tab.recipient.avatarUrl;
             }
         };
 
@@ -200,7 +201,7 @@
                         $scope.$toastShow(message);
                     }
                     message.seen = message.seen[0];
-                    if (currChat.recipient.id === message.from.id) {
+                    if (currChat.recipient.id === message.from.id || currChat.recipient.id === message.to) {
                         currChat.messages.push(message);
                     }
                 }
@@ -278,10 +279,8 @@
                             user.lastMsgTime = conversation.lastMessage;
                             //check if last msg is from me or other
                             var userTab = $scope.$getTabByUserId(user.id);
-                            if (userTab && userTab.messages.length > 0) {
+                            if (userTab) {
                                 var finalMessage = userTab.messages[userTab.messages.length - 1];
-                                console.log(finalMessage);
-                                //if !lastmsg.from.me then
                                 if (finalMessage.from.id !== $scope.user._id) {
                                     user.anyUnseen = true;
                                 }
