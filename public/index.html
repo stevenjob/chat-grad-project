@@ -20,7 +20,7 @@
                     Steven's Cool Chat App
                 </h3>
                 <div flex=""></div>
-                <span class="small-icon" ng-show="loggedIn">Logged in as {{user.name || user.id}}.</span>
+                <span class="small-icon" ng-show="loggedIn">Logged in as {{user.name || user._id}}.</span>
             </div>
         </md-toolbar>
         <md-button md-no-ink class="md-primary" ng-show="!loggedIn" ng-href={{loginUri}} >Log In</md-button>
@@ -34,18 +34,18 @@
                     <md-content class="md-padding">
                         <md-list>
                             <!--<md-subheader class="md-no-sticky">List of registered users</md-subheader>-->
-                            <md-list-item ng-repeat="user in users | excludeCurrent | filter: searchUsers | orderBy:'lastMsgTime' " ng-click="addTab(user)">
-                                <img ng-src="{{user.avatarUrl}}" class="face" >
+                            <md-list-item ng-repeat="otherUser in users | excludeCurrent: user._id | filter: searchUsers | orderBy:'lastMsgTime' " ng-click="addTab(otherUser)">
+                                <img ng-src="{{otherUser.avatarUrl}}" class="face" >
                                 <div class="full-width">
                                     <div>
-                                    {{user.name || user.id}}
+                                    {{otherUser.name || otherUser.id}}
                                     </div>
                                     <div layout="row">
                                         <div flex="25">
-                                            <i ng-show=user.isTalking&&!user.anyUnseen class="material-icons">chat_bubble_outline</i>
-                                            <i ng-show=user.anyUnseen class="material-icons">announcement</i>
+                                            <i ng-show=otherUser.isTalking&&!otherUser.anyUnseen class="material-icons">chat_bubble_outline</i>
+                                            <i ng-show=otherUser.anyUnseen class="material-icons">announcement</i>
                                         </div>
-                                        <div flex="75" style="text-align: right;">{{user.lastMsgTime | date: 'h:mm a d MMM'}}</div>
+                                        <div flex="75" style="text-align: right;">{{otherUser.lastMsgTime | date: 'h:mm a d MMM'}}</div>
                                     </div>
                                 </div>
                                 <md-divider ng-if="!$last"></md-divider>
@@ -77,8 +77,17 @@
                         </div>
                         <md-list>
                             <md-list-item ng-repeat="message in tab.messages">
-                                <!--<img src="{{message.from.avatarUrl}}" class="md-avatar" alt="{{message.from.name || message.from.id}}" />-->
-                                <b>{{message.from.name || message.from.id}}:</b> <br/> {{message.body}} seen: {{message.seen}} <b>{{message.sent | date: 'h:mm a d MMM'}}</b>
+                                <img ng-src="{{getAvatar(message)}}" class="face" >
+                                <div class="full-width">
+                                    <div>
+                                        <b>{{message.from.name || message.from.id}}</b>
+                                    </div>
+                                    <div layout="row">
+                                        <div flex="80" class="break-words">{{message.body}}
+                                        </div>
+                                        <div flex="20" style="text-align: right;">{{message.sent | date: 'h:mm a d MMM'}}</div>
+                                    </div>
+                                </div>
                             </md-list-item>
                         </md-list>
                         <div ng-show="tab.messages.length===0" > No Messages

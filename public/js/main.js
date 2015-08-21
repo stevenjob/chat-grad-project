@@ -4,14 +4,14 @@
     });
 
     app.filter("excludeCurrent", function () {
-        return function (items) {
+        return function (items, idToComp) {
             var filtered = [];
-            if (items === undefined) {
+            if (typeof items === "undefined") {
                 return null;
             }
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                if (item.id !== "") {
+                if (item.id !== idToComp) {
                     filtered.push(item);
                 }
             }
@@ -38,6 +38,11 @@
                 $scope.$addMessageToTab(message);
                 //$scope.$addMessageToChat(message);
             });
+
+            $scope.socket.on("delete-it", function (senderId) {
+                var userTab = $scope.$getTabByUserId(senderId);
+                userTab.messages = [];
+            });
         };
 
         $scope.$sendSockMess = function(to, message) {
@@ -51,10 +56,12 @@
             if ($scope.socket) {
                 $scope.socket.emit("delete-convo", tab.recipient.id);
                 //convoTabs remove tab
-                $scope.removeTab(tab);
+                tab.messages = [];
+                //$scope.removeTab(tab);
                 var cUser = $scope.$getUserById(tab.recipient.id);
                 cUser.isTalking = false;
                 cUser.anyUnseen = false;
+                cUser.lastMsgTime = null;
 
             }
         };
@@ -114,6 +121,15 @@
             })[0];
         };
 
+        $scope.getAvatar = function (message) {
+            if (message.from.id === $scope.user._id) {
+                return $scope.user.avatarUrl;
+            }
+            else {
+                return message.recipient.avatarUrl;
+            }
+        };
+
         $scope.addTab = function (recipient) {
             //todo get view stuff change convoTabs params
             $scope.$getMessagesForTab();
@@ -147,8 +163,6 @@
                 }
             }
         };
-
-
 
         $scope.$watch("selectedTab", function(current, old) {
             if (current !== 0) {
@@ -186,7 +200,9 @@
                         $scope.$toastShow(message);
                     }
                     message.seen = message.seen[0];
-                    currChat.messages.push(message);
+                    if (currChat.recipient.id === message.from.id) {
+                        currChat.messages.push(message);
+                    }
                 }
                 else {
                     if (message.from.id !== $scope.user._id && !message.seen) {
@@ -239,10 +255,8 @@
         };
 
         $scope.$reloadFromServer = function() {
-            //$scope.$getMessagesForTab();
             $scope.$getMessages();
         };
-
 
         $scope.$toastShow = function(message) {
             var toast = $mdToast.simple()
@@ -256,8 +270,6 @@
             $http.get("/api/conversations").then(function (response) {
                 response.data.forEach(function (conversation) {
                     var user = $scope.$getUserById(conversation.user);
-
-                    //if user lastmsg time is different then user has a new mesage
                     if (!user.isTalking) {
                         user.isTalking = true;
                     }
@@ -265,10 +277,10 @@
                         if (user.lastMsgTime < conversation.lastMessage || !user.lastMsgTime) {
                             user.lastMsgTime = conversation.lastMessage;
                             //check if last msg is from me or other
-                            var userTab = $scope.$getTabByUserId(user.id);huy
-                            if (userTab) {
+                            var userTab = $scope.$getTabByUserId(user.id);
+                            if (userTab && userTab.messages.length > 0) {
                                 var finalMessage = userTab.messages[userTab.messages.length - 1];
-
+                                console.log(finalMessage);
                                 //if !lastmsg.from.me then
                                 if (finalMessage.from.id !== $scope.user._id) {
                                     user.anyUnseen = true;

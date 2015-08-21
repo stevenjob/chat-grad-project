@@ -16,3 +16,8 @@ header {
 .full-width {
     width: 100%;
 }
+
+.break-words {
+    -ms-word-break: break-word;
+    word-break: break-word;
+}

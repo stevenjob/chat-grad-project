@@ -13,7 +13,7 @@ module.exports = function(port, db, githubAuthoriser) {
     app.use(bodyParser.json());
 
     var users = db.collection("users");
-    var convos = db.collection("conversations-s");
+    var convos = db.collection("conversations-stevejobn");
     var sessions = {};
     var activeSocks = {};
 
@@ -112,7 +112,6 @@ module.exports = function(port, db, githubAuthoriser) {
         socket.on("message", function (message) {
             var to = message.to;
             delete message.to;
-            console.log(to + " " + socketId);
             saveMessage(socketId, to, message);
         });
 
@@ -122,12 +121,19 @@ module.exports = function(port, db, githubAuthoriser) {
                 if (!err) {
                     docs.forEach(function (convo) {
                         convos.remove(convo);
+                        emitRemoval(id, socketId);
                     });
                 }
             });
         });
 
     });
+
+    function emitRemoval(id, socketId) {
+        if (activeSocks[id]) {
+            activeSocks[id].emit("delete-it", socketId);
+        }
+    }
 
     function saveMessage(senderID, recevID, message, res) {
         if (senderID && recevID && message) {
@@ -226,8 +232,9 @@ module.exports = function(port, db, githubAuthoriser) {
                         chat.anyUnseen = message.seen ? false : true;
 
                     }
-
-                    chats.push(chat);
+                    if (chat.user) {
+                        chats.push(chat);
+                    }
                 });
 
                 res.json(chats);
