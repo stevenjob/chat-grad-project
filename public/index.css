@@ -1,9 +1,18 @@
 .face {
     width: 48px;
-    margin: 16px;
+    margin: 14px;
     border-radius: 48px;
-    border: 1px solid #ddd; }
+    border: 1px solid #ddd;
+}
 
 header {
     background-color: #689F38;
+}
+
+.small-icon {
+    font-size: 0.8em;
+}
+
+.full-width {
+    width: 100%;
 }

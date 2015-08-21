@@ -9,19 +9,25 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.1/angular-material.min.js"></script>
         <script src="js/main.js"></script>
         <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
-        <link rel="stylesheet" href="index.css">
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.0/angular-material.min.css">
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="index.css">
     </head>
     <body ng-controller="ChatController">
+        <md-toolbar>
+            <div class="md-toolbar-tools">
+                <h3>
+                    Steven's Cool Chat App
+                </h3>
+                <div flex=""></div>
+                <span class="small-icon" ng-show="loggedIn">Logged in as {{user.name || user.id}}.</span>
+            </div>
+        </md-toolbar>
         <md-button md-no-ink class="md-primary" ng-show="!loggedIn" ng-href={{loginUri}} >Log In</md-button>
-        <md-content ng-show="loggedIn" class="md-padding">
-            <header>
-            <h3>Logged in as {{user.name}}.</h3>
-            </header>
-            <md-tabs  md-selected="selectedTab" md-dynamic-height md-border-bottom>
+        <md-content ng-show="loggedIn">
+            <md-tabs  class="md-primary" md-selected="selectedTab" md-dynamic-height md-border-bottom>
                 <md-tab label="users">
-                    <md-input-container>
+                    <md-input-container class="md-padding">
                         <label>Search users</label>
                         <input type="text" ng-model="searchUsers">
                     </md-input-container>
@@ -30,10 +36,18 @@
                             <!--<md-subheader class="md-no-sticky">List of registered users</md-subheader>-->
                             <md-list-item ng-repeat="user in users | excludeCurrent | filter: searchUsers | orderBy:'lastMsgTime' " ng-click="addTab(user)">
                                 <img ng-src="{{user.avatarUrl}}" class="face" >
-                                <h5>{{user.name || user.id}}</h5>
-                                <p ng-show=user.isTalking><i class="material-icons">chat_bubble_outline</i></p>
-                                <p ng-show=user.anyUnseen><i class="material-icons">announcement</i></p>
-                                {{user.lastMsgTime | date: 'h:mm a d MMM'}}
+                                <div class="full-width">
+                                    <div>
+                                    {{user.name || user.id}}
+                                    </div>
+                                    <div layout="row">
+                                        <div flex="25">
+                                            <i ng-show=user.isTalking&&!user.anyUnseen class="material-icons">chat_bubble_outline</i>
+                                            <i ng-show=user.anyUnseen class="material-icons">announcement</i>
+                                        </div>
+                                        <div flex="75" style="text-align: right;">{{user.lastMsgTime | date: 'h:mm a d MMM'}}</div>
+                                    </div>
+                                </div>
                                 <md-divider ng-if="!$last"></md-divider>
                             </md-list-item>
                         </md-list>
@@ -44,17 +58,23 @@
                         >
                     <md-tab-label>
                         {{tab.recipient.name || tab.recipient.id}}
-                        <i class="material-icons" ng-click="removeTab(tab)">clear</i>
+                        <i class="material-icons small-icon" ng-click="removeTab(tab)">clear</i>
                     </md-tab-label>
                     <md-tab-body>
                     <div class="tab{{$index%4}}" style="padding: 25px;">
-                        <form ng-submit="sendMessage(tab)">
-                            <md-input-container>
-                                <label>Send Message</label>
-                                <input ng-model="tab.currentMessage" type="text">
-                            </md-input-container>
-                        </form>
-                        <md-button md-no-ink class="md-primary" ng-click="deleteConvo(tab)" >Remove Conversation</md-button>
+                        <div layout="row">
+                            <form ng-submit="sendMessage(tab)" flex="95">
+                                <md-input-container>
+                                    <label>Send Message</label>
+                                    <input ng-model="tab.currentMessage" type="text">
+                                </md-input-container>
+                            </form>
+                            <md-button class="md-primary" ng-click="deleteConvo(tab)" flex="5">
+                                <i class="material-icons">
+                                    delete
+                                </i>
+                            </md-button>
+                        </div>
                         <md-list>
                             <md-list-item ng-repeat="message in tab.messages">
                                 <!--<img src="{{message.from.avatarUrl}}" class="md-avatar" alt="{{message.from.name || message.from.id}}" />-->
